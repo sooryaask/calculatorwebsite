@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Casio fx-CG50 Calculator</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- ======= CALCULATOR ======= -->
+    <div class="calculator-wrapper">
+      <div class="calculator">
+
+        <!-- Top bezel -->
+        <div class="top-bezel">
+          <span class="brand">CASIO</span>
+          <span class="model">fx-CG50</span>
+        </div>
+
+        <!-- Screen -->
+        <div class="screen-bezel">
+          <div class="screen" id="screen">
+            <!-- Main Menu -->
+            <div class="screen-content" id="main-menu">
+              <div class="menu-bar">MAIN MENU</div>
+              <div class="menu-grid">
+                <div class="menu-item" data-app="run">
+                  <div class="menu-icon icon-run"><svg viewBox="0 0 24 24" width="20" height="20"><text x="3" y="18" font-size="14" fill="white" font-weight="bold">±</text></svg></div>
+                  <span>Run-Matrix</span>
+                </div>
+                <div class="menu-item" data-app="stats">
+                  <div class="menu-icon icon-stats"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="12" width="4" height="8" fill="white"/><rect x="10" y="6" width="4" height="14" fill="white"/><rect x="17" y="2" width="4" height="18" fill="white"/></svg></div>
+                  <span>Statistics</span>
+                </div>
+                <div class="menu-item" data-app="graph">
+                  <div class="menu-icon icon-graph"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M2 20 Q8 2 12 12 T22 4" stroke="white" fill="none" stroke-width="2"/></svg></div>
+                  <span>Graph</span>
+                </div>
+                <div class="menu-item" data-app="table">
+                  <div class="menu-icon icon-table"><svg viewBox="0 0 24 24" width="20" height="20"><rect x="2" y="2" width="20" height="20" rx="2" stroke="white" fill="none" stroke-width="1.5"/><line x1="2" y1="8" x2="22" y2="8" stroke="white" stroke-width="1.5"/><line x1="2" y1="14" x2="22" y2="14" stroke="white" stroke-width="1.5"/><line x1="12" y1="2" x2="12" y2="20" stroke="white" stroke-width="1.5"/></svg></div>
+                  <span>Table</span>
+                </div>
+                <div class="menu-item" data-app="equation">
+                  <div class="menu-icon icon-eq"><svg viewBox="0 0 24 24" width="20" height="20"><text x="1" y="16" font-size="10" fill="white" font-weight="bold">ax²</text></svg></div>
+                  <span>Equation</span>
+                </div>
+                <div class="menu-item" data-app="convert">
+                  <div class="menu-icon icon-conv"><svg viewBox="0 0 24 24" width="20" height="20"><text x="2" y="16" font-size="14" fill="white" font-weight="bold">⇄</text></svg></div>
+                  <span>Convert</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Run-Matrix Mode -->
+            <div class="screen-content hidden" id="run-screen">
+              <div class="menu-bar">Run-Matrix</div>
+              <div class="run-display" id="run-display">
+                <div class="run-lines" id="run-lines"></div>
+                <div class="run-input-line">
+                  <span id="run-input"></span><span id="run-cursor" class="cursor">▌</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Graph Mode -->
+            <div class="screen-content hidden" id="graph-screen">
+              <div class="menu-bar">Graph</div>
+              <div class="graph-editor" id="graph-editor">
+                <div class="graph-fn-list" id="graph-fn-list">
+                  <div class="graph-fn-row active" data-idx="0"><span class="fn-label">Y1=</span><input class="fn-input" id="fn-y1" value="sin(X)" spellcheck="false"></div>
+                  <div class="graph-fn-row" data-idx="1"><span class="fn-label">Y2=</span><input class="fn-input" id="fn-y2" value="" spellcheck="false"></div>
+                  <div class="graph-fn-row" data-idx="2"><span class="fn-label">Y3=</span><input class="fn-input" id="fn-y3" value="" spellcheck="false"></div>
+                  <div class="graph-fn-row" data-idx="3"><span class="fn-label">Y4=</span><input class="fn-input" id="fn-y4" value="" spellcheck="false"></div>
+                </div>
+                <div class="graph-hint">Press EXE or F6 to draw</div>
+              </div>
+              <div class="graph-view hidden" id="graph-view">
+                <canvas id="graph-canvas"></canvas>
+                <div class="graph-coords" id="graph-coords"></div>
+              </div>
+            </div>
+
+            <!-- Statistics Mode -->
+            <div class="screen-content hidden" id="stats-screen">
+              <div class="menu-bar">Statistics</div>
+              <div class="stats-editor" id="stats-editor">
+                <table class="stats-table">
+                  <thead><tr><th></th><th>List 1</th><th>List 2</th></tr></thead>
+                  <tbody id="stats-body"></tbody>
+                </table>
+                <div class="graph-hint">Enter data, press F6 for results</div>
+              </div>
+              <div class="stats-results hidden" id="stats-results">
+                <div class="stats-output" id="stats-output"></div>
+              </div>
+            </div>
+
+            <!-- Equation Mode -->
+            <div class="screen-content hidden" id="equation-screen">
+              <div class="menu-bar">Equation</div>
+              <div class="eq-menu" id="eq-menu">
+                <div class="eq-option" data-type="linear">F1: Simultaneous (2 unknowns)</div>
+                <div class="eq-option" data-type="quad">F2: Polynomial (ax²+bx+c=0)</div>
+                <div class="eq-option" data-type="cubic">F3: Polynomial (ax³+bx²+cx+d=0)</div>
+              </div>
+              <div class="eq-solver hidden" id="eq-solver">
+                <div class="eq-title" id="eq-title"></div>
+                <div class="eq-fields" id="eq-fields"></div>
+                <div class="eq-result" id="eq-result"></div>
+                <div class="graph-hint">Enter values, press F6 to solve</div>
+              </div>
+            </div>
+
+            <!-- Table Mode -->
+            <div class="screen-content hidden" id="table-screen">
+              <div class="menu-bar">Table</div>
+              <div class="table-setup" id="table-setup">
+                <div class="table-field"><label>Y=</label><input id="table-fn" value="X^2" spellcheck="false"></div>
+                <div class="table-field"><label>Start:</label><input id="table-start" value="-5" type="number"></div>
+                <div class="table-field"><label>End:</label><input id="table-end" value="5" type="number"></div>
+                <div class="table-field"><label>Step:</label><input id="table-step" value="1" type="number"></div>
+                <div class="graph-hint">Press F6 to generate table</div>
+              </div>
+              <div class="table-view hidden" id="table-view">
+                <table class="stats-table">
+                  <thead><tr><th>X</th><th>Y</th></tr></thead>
+                  <tbody id="table-body"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Unit Converter -->
+            <div class="screen-content hidden" id="convert-screen">
+              <div class="menu-bar">Convert</div>
+              <div class="convert-panel">
+                <select id="conv-category">
+                  <option value="length">Length</option>
+                  <option value="weight">Weight</option>
+                  <option value="temp">Temperature</option>
+                </select>
+                <div class="conv-row">
+                  <input id="conv-from-val" type="number" value="1">
+                  <select id="conv-from-unit"></select>
+                </div>
+                <div class="conv-arrow">⟹</div>
+                <div class="conv-row">
+                  <input id="conv-to-val" readonly>
+                  <select id="conv-to-unit"></select>
+                </div>
+              </div>
+            </div>
+
+            <!-- F-key labels at bottom of screen -->
+            <div class="fkey-bar" id="fkey-bar"></div>
+          </div>
+        </div>
+
+        <!-- ====== PHYSICAL KEYS ====== -->
+
+        <!-- F1-F6 -->
+        <div class="key-section">
+          <div class="fkey-labels-row">
+            <span class="flabel">Trace</span>
+            <span class="flabel">Zoom</span>
+            <span class="flabel">V-Window</span>
+            <span class="flabel">Sketch</span>
+            <span class="flabel">G-Solv</span>
+            <span class="flabel">G⟷T</span>
+          </div>
+          <div class="fkey-row">
+            <button class="key fkey" data-fkey="1"><span>F1</span></button>
+            <button class="key fkey" data-fkey="2"><span>F2</span></button>
+            <button class="key fkey" data-fkey="3"><span>F3</span></button>
+            <button class="key fkey" data-fkey="4"><span>F4</span></button>
+            <button class="key fkey" data-fkey="5"><span>F5</span></button>
+            <button class="key fkey" data-fkey="6"><span>F6</span></button>
+          </div>
+        </div>
+
+        <!-- Row: SHIFT OPTN VARS MENU + D-pad -->
+        <div class="key-row row-with-dpad">
+          <div class="key-group-left">
+            <button class="key key-shift" id="key-shift">SHIFT</button>
+            <button class="key key-dark" data-action="optn"><span class="sub-label">PRGM</span>OPTN</button>
+            <button class="key key-dark" data-action="vars"><span class="sub-label"></span>VARS</button>
+            <button class="key key-dark" data-action="menu"><span class="sub-label">SET UP</span>MENU</button>
+          </div>
+          <div class="dpad-container">
+            <div class="dpad">
+              <button class="dpad-btn dpad-up" data-dir="up"></button>
+              <button class="dpad-btn dpad-right" data-dir="right"></button>
+              <button class="dpad-btn dpad-down" data-dir="down"></button>
+              <button class="dpad-btn dpad-left" data-dir="left"></button>
+              <div class="dpad-center"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row: ALPHA x² ^ EXIT -->
+        <div class="key-row">
+          <button class="key key-alpha" id="key-alpha"><span class="sub-label">A-LOCK</span>ALPHA</button>
+          <button class="key key-dark" data-val="^2"><span class="sub-label alpha-label">√</span>x²</button>
+          <button class="key key-dark" data-val="^"><span class="sub-label alpha-label">∛</span>^</button>
+          <button class="key key-dark" data-action="exit"><span class="sub-label">QUIT</span>EXIT</button>
+        </div>
+
+        <!-- Row: X,θ,T  log  ln  sin  cos  tan -->
+        <div class="key-row row-6">
+          <button class="key key-dark" data-val="X"><span class="sub-label shift-label">∠</span>X,θ,T</button>
+          <button class="key key-dark" data-val="log("><span class="sub-label shift-label">10ˣ</span>log</button>
+          <button class="key key-dark" data-val="ln("><span class="sub-label shift-label">eˣ</span>ln</button>
+          <button class="key key-dark" data-val="sin("><span class="sub-label shift-label">sin⁻¹</span>sin</button>
+          <button class="key key-dark" data-val="cos("><span class="sub-label shift-label">cos⁻¹</span>cos</button>
+          <button class="key key-dark" data-val="tan("><span class="sub-label shift-label">tan⁻¹</span>tan</button>
+        </div>
+
+        <!-- Row: frac  S↔D  (  )  ,  → -->
+        <div class="key-row row-6">
+          <button class="key key-dark" data-val="(" data-action="frac"><span class="sub-label shift-label">a b/c</span>⬚/⬚</button>
+          <button class="key key-dark" data-action="sd"><span class="sub-label shift-label">a b̸c↔d̸c</span>S⟷D</button>
+          <button class="key key-dark" data-val="("><span class="sub-label shift-label">x⁻¹</span>(</button>
+          <button class="key key-dark" data-val=")">)</button>
+          <button class="key key-dark" data-val=",">,</button>
+          <button class="key key-dark" data-val="" data-action="right">→</button>
+        </div>
+
+        <!-- Number pad + operators -->
+        <div class="numpad">
+          <div class="key-row row-5 numrow">
+            <button class="key key-num" data-val="7"><span class="sub-label shift-label sm">CAPTURE</span>7</button>
+            <button class="key key-num" data-val="8"><span class="sub-label shift-label sm">CLIP</span>8</button>
+            <button class="key key-num" data-val="9"><span class="sub-label shift-label sm">PASTE</span>9</button>
+            <button class="key key-del" data-action="del"><span class="sub-label shift-label sm">INS</span>DEL</button>
+            <button class="key key-ac" data-action="ac"><span class="sub-label shift-label sm">UNDO</span><span class="ac-text">AC<span class="ac-slash">/</span><span class="ac-on">ON</span></span></button>
+          </div>
+          <div class="key-row row-5 numrow">
+            <button class="key key-num" data-val="4">4</button>
+            <button class="key key-num" data-val="5">5</button>
+            <button class="key key-num" data-val="6">6</button>
+            <button class="key key-op" data-val="*">×</button>
+            <button class="key key-op" data-val="/">÷</button>
+          </div>
+          <div class="key-row row-5 numrow">
+            <button class="key key-num" data-val="1">1</button>
+            <button class="key key-num" data-val="2">2</button>
+            <button class="key key-num" data-val="3">3</button>
+            <button class="key key-op" data-val="+">+</button>
+            <button class="key key-op" data-val="-">−</button>
+          </div>
+          <div class="key-row row-5 numrow bottom-row">
+            <button class="key key-num" data-val="0">0</button>
+            <button class="key key-num" data-val=".">•</button>
+            <button class="key key-num" data-val="E">×10<sup>x</sup></button>
+            <button class="key key-num" data-val="(-)"><span class="sub-label shift-label sm">Ans</span>(−)</button>
+            <button class="key key-exe" data-action="exe">EXE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======= AI SIDEBAR ======= -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          Math Tutor AI
+        </div>
+        <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle sidebar">◀</button>
+      </div>
+
+      <div class="sidebar-body">
+        <!-- API Key Setup -->
+        <div class="api-setup" id="api-setup">
+          <p class="api-info">Enter your Anthropic API key to enable the AI math tutor. Your key stays in your browser only.</p>
+          <input type="password" id="api-key-input" placeholder="sk-ant-..." class="api-key-field">
+          <button id="api-key-save" class="api-key-btn">Connect</button>
+        </div>
+
+        <!-- Chat -->
+        <div class="chat-container hidden" id="chat-container">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg assistant">
+              <div class="msg-bubble">Hi! I'm your math tutor. Ask me anything about the problem you're working on — I can explain concepts, check your work, or walk you through steps.</div>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <textarea id="chat-input" placeholder="Ask a math question..." rows="2"></textarea>
+            <button id="chat-send" class="chat-send-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collapsed sidebar tab -->
+    <button class="sidebar-tab hidden" id="sidebar-tab" title="Open Math Tutor">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    </button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
