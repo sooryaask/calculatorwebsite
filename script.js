@@ -26,6 +26,45 @@ const asinD = a => radToDeg(Math.asin(a));
 const acosD = a => radToDeg(Math.acos(a));
 const atanD = a => radToDeg(Math.atan(a));
 
+// --- Implicit multiplication via tokenizer ---
+function addImplicitMul(expr) {
+  // Tokenize the expression into numbers, identifiers (function names/variables), operators, parens
+  const tokens = [];
+  const re = /([a-zA-Z_]\w*)|(\d+\.?\d*|\.\d+)|([+\-*/,]|\*\*)|([()])/g;
+  let m;
+  while ((m = re.exec(expr)) !== null) {
+    if (m[1]) tokens.push({ type: 'id', val: m[1] });
+    else if (m[2]) tokens.push({ type: 'num', val: m[2] });
+    else if (m[3]) tokens.push({ type: 'op', val: m[3] });
+    else if (m[4]) tokens.push({ type: m[4] === '(' ? 'lp' : 'rp', val: m[4] });
+  }
+
+  // Insert * where implicit multiplication is needed
+  let result = '';
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (i > 0) {
+      const prev = tokens[i - 1];
+      const needsMul =
+        // num followed by id or (: 3sin, 3X, 3(
+        (prev.type === 'num' && (t.type === 'id' || t.type === 'lp')) ||
+        // ) followed by id, num, or (: )sin, )3, )(
+        (prev.type === 'rp' && (t.type === 'id' || t.type === 'num' || t.type === 'lp')) ||
+        // id/variable followed by (  BUT only if the id is NOT a known function
+        // Actually: X( → X*(, PI( → PI*(, but sin( should stay sin(
+        (prev.type === 'id' && t.type === 'lp' && !isFunc(prev.val)) ||
+        // id followed by id: Xsin → X*sin, but not function names split apart
+        (prev.type === 'id' && t.type === 'id' && !isFunc(prev.val));
+      if (needsMul) result += '*';
+    }
+    result += t.val;
+  }
+  return result;
+}
+
+const knownFuncs = new Set(['sin','cos','tan','asin','acos','atan','sinh','cosh','tanh','log','ln','exp','sqrt','cbrt','abs','ceil','floor','round','factorial','nPr','nCr']);
+function isFunc(name) { return knownFuncs.has(name); }
+
 // --- Safe math evaluator ---
 function safeEval(expr, vars = {}) {
   let s = expr
@@ -40,35 +79,11 @@ function safeEval(expr, vars = {}) {
   s = s.replace(/⌟/g, '/');
 
   // Implicit multiplication (careful not to break function names):
-  const funcs = ['sin','cos','tan','asin','acos','atan','sinh','cosh','tanh','log','ln','exp','sqrt','cbrt','abs','ceil','floor','round','factorial','nPr','nCr'];
-  // Temporarily replace function names with placeholders
-  const placeholders = {};
-  funcs.forEach((f, i) => {
-    const ph = `__FN${i}__`;
-    placeholders[ph] = f;
-    s = s.replace(new RegExp(f, 'g'), ph);
-  });
-  // Also protect variable names X, x, PI, E
-  s = s.replace(/\bPI\b/g, '__PI__');
-  s = s.replace(/\bE\b/g, '__E__');
-
-  // Now insert * between: digit and placeholder/variable, ) and (, ) and digit, ) and placeholder
-  s = s.replace(/(\d)(__)/g, '$1*$2');         // 3__FN → 3*__FN
-  s = s.replace(/(\d)([xX])/g, '$1*$2');       // 3x → 3*x
-  s = s.replace(/(\d)(\()/g, '$1*$2');         // 3( → 3*(
-  s = s.replace(/\)(\()/g, ')*(');             // )( → )*(
-  s = s.replace(/\)(\d)/g, ')*$1');            // )2 → )*2
-  s = s.replace(/\)(__)/g, ')*$1');            // )__FN → )*__FN
-  s = s.replace(/\)([xX])/g, ')*$1');         // )x → )*x
-  s = s.replace(/([xX])(\()/g, '$1*(');        // x( → x*(
-  s = s.replace(/([xX])(__)/g, '$1*$2');        // xsin → x*sin
-
-  // Restore placeholders
-  Object.entries(placeholders).forEach(([ph, f]) => {
-    s = s.replace(new RegExp(ph, 'g'), f);
-  });
-  s = s.replace(/__PI__/g, 'PI');
-  s = s.replace(/__E__/g, 'E');
+  // Use word-boundary-aware replacement: insert * between a digit/closing-paren and
+  // the start of a function name, variable, or opening paren.
+  // Pattern: (digit or ')') followed by (letter or '(')
+  // But we must not split inside function names, so we tokenize first.
+  s = addImplicitMul(s);
 
   const ctx = {
     sin: sinD, cos: cosD, tan: tanD,
@@ -783,11 +798,13 @@ function handleButtonPress(val, action) {
   if (action === 'ac') {
     if (app === 'run') {
       if (state.runInput === '') {
-        // Double AC clears history
         state.runHistory = [];
       }
       state.runInput = '';
       renderRunScreen();
+    } else if (app === 'graph' && state.graphShowEditor) {
+      const input = $(`#fn-y${state.graphActiveFn + 1}`);
+      if (input) { input.value = ''; input.focus(); }
     }
     return;
   }
@@ -797,6 +814,19 @@ function handleButtonPress(val, action) {
       const fnMatch = state.runInput.match(/(sin\(|cos\(|tan\(|log\(|ln\(|sqrt\(|abs\(|asin\(|acos\(|atan\(|exp\()$/);
       state.runInput = fnMatch ? state.runInput.slice(0, -fnMatch[0].length) : state.runInput.slice(0, -1);
       renderRunScreen();
+    } else if (app === 'graph' && state.graphShowEditor) {
+      const input = $(`#fn-y${state.graphActiveFn + 1}`);
+      if (input && input.value.length > 0) {
+        const pos = input.selectionStart ?? input.value.length;
+        // Check if there's a function name right before cursor
+        const before = input.value.slice(0, pos);
+        const fnMatch = before.match(/(sin\(|cos\(|tan\(|log\(|ln\(|sqrt\(|abs\(|asin\(|acos\(|atan\(|exp\()$/);
+        const delLen = fnMatch ? fnMatch[0].length : 1;
+        input.value = before.slice(0, -delLen) + input.value.slice(pos);
+        input.focus();
+        const newPos = pos - delLen;
+        input.setSelectionRange(newPos, newPos);
+      }
     }
     return;
   }
@@ -835,25 +865,35 @@ function handleButtonPress(val, action) {
 
   // Value input
   if (val !== undefined && val !== null) {
-    if (app === 'run') {
-      let v = val;
-      // Shift modifications
-      if (state.shiftActive) {
-        if (v === 'sin(') v = 'asin(';
-        else if (v === 'cos(') v = 'acos(';
-        else if (v === 'tan(') v = 'atan(';
-        else if (v === 'log(') v = '10**(';
-        else if (v === 'ln(') v = 'exp(';
-        else if (v === '^2') v = 'sqrt(';
-        else if (v === '^') v = 'cbrt(';
-      }
-      // Handle (-) as negative sign
-      if (v === '(-)') v = '(-';
-      // Handle E
-      if (v === 'E') v = '*10**(';
+    let v = val;
+    // Shift modifications
+    if (state.shiftActive) {
+      if (v === 'sin(') v = 'asin(';
+      else if (v === 'cos(') v = 'acos(';
+      else if (v === 'tan(') v = 'atan(';
+      else if (v === 'log(') v = '10**(';
+      else if (v === 'ln(') v = 'exp(';
+      else if (v === '^2') v = 'sqrt(';
+      else if (v === '^') v = 'cbrt(';
+    }
+    // Handle (-) as negative sign
+    if (v === '(-)') v = '(-';
+    // Handle E
+    if (v === 'E') v = '*10**(';
 
+    if (app === 'run') {
       state.runInput += v;
       renderRunScreen();
+    } else if (app === 'graph' && state.graphShowEditor) {
+      // Insert into the active graph function input
+      const input = $(`#fn-y${state.graphActiveFn + 1}`);
+      if (input) {
+        const pos = input.selectionStart ?? input.value.length;
+        input.value = input.value.slice(0, pos) + v + input.value.slice(pos);
+        input.focus();
+        const newPos = pos + v.length;
+        input.setSelectionRange(newPos, newPos);
+      }
     }
     // Reset shift/alpha
     state.shiftActive = false;
@@ -957,6 +997,17 @@ $$('.graph-fn-row').forEach(row => {
     $$('.graph-fn-row').forEach(r => r.classList.remove('active'));
     row.classList.add('active');
     state.graphActiveFn = Number(row.dataset.idx);
+  });
+});
+// Also track active fn when user focuses an input directly
+$$('.fn-input').forEach(input => {
+  input.addEventListener('focus', () => {
+    const row = input.closest('.graph-fn-row');
+    if (row) {
+      $$('.graph-fn-row').forEach(r => r.classList.remove('active'));
+      row.classList.add('active');
+      state.graphActiveFn = Number(row.dataset.idx);
+    }
   });
 });
 
