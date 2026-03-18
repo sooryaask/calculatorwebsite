@@ -16,6 +16,16 @@ function stdev(a) { return Math.sqrt(variance(a)); }
 function sampleVariance(a) { const m = mean(a); return a.reduce((s, x) => s + (x - m) ** 2, 0) / (a.length - 1); }
 function sampleStdev(a) { return Math.sqrt(sampleVariance(a)); }
 
+// --- Degree-based trig helpers ---
+const degToRad = a => a * Math.PI / 180;
+const radToDeg = a => a * 180 / Math.PI;
+const sinD = a => Math.sin(degToRad(a));
+const cosD = a => Math.cos(degToRad(a));
+const tanD = a => Math.tan(degToRad(a));
+const asinD = a => radToDeg(Math.asin(a));
+const acosD = a => radToDeg(Math.acos(a));
+const atanD = a => radToDeg(Math.atan(a));
+
 // --- Safe math evaluator ---
 function safeEval(expr, vars = {}) {
   let s = expr
@@ -29,9 +39,40 @@ function safeEval(expr, vars = {}) {
   // Handle fraction notation: a⌟b = a/b
   s = s.replace(/⌟/g, '/');
 
+  // Implicit multiplication (careful not to break function names):
+  const funcs = ['sin','cos','tan','asin','acos','atan','sinh','cosh','tanh','log','ln','exp','sqrt','cbrt','abs','ceil','floor','round','factorial','nPr','nCr'];
+  // Temporarily replace function names with placeholders
+  const placeholders = {};
+  funcs.forEach((f, i) => {
+    const ph = `__FN${i}__`;
+    placeholders[ph] = f;
+    s = s.replace(new RegExp(f, 'g'), ph);
+  });
+  // Also protect variable names X, x, PI, E
+  s = s.replace(/\bPI\b/g, '__PI__');
+  s = s.replace(/\bE\b/g, '__E__');
+
+  // Now insert * between: digit and placeholder/variable, ) and (, ) and digit, ) and placeholder
+  s = s.replace(/(\d)(__)/g, '$1*$2');         // 3__FN → 3*__FN
+  s = s.replace(/(\d)([xX])/g, '$1*$2');       // 3x → 3*x
+  s = s.replace(/(\d)(\()/g, '$1*$2');         // 3( → 3*(
+  s = s.replace(/\)(\()/g, ')*(');             // )( → )*(
+  s = s.replace(/\)(\d)/g, ')*$1');            // )2 → )*2
+  s = s.replace(/\)(__)/g, ')*$1');            // )__FN → )*__FN
+  s = s.replace(/\)([xX])/g, ')*$1');         // )x → )*x
+  s = s.replace(/([xX])(\()/g, '$1*(');        // x( → x*(
+  s = s.replace(/([xX])(__)/g, '$1*$2');        // xsin → x*sin
+
+  // Restore placeholders
+  Object.entries(placeholders).forEach(([ph, f]) => {
+    s = s.replace(new RegExp(ph, 'g'), f);
+  });
+  s = s.replace(/__PI__/g, 'PI');
+  s = s.replace(/__E__/g, 'E');
+
   const ctx = {
-    sin: Math.sin, cos: Math.cos, tan: Math.tan,
-    asin: Math.asin, acos: Math.acos, atan: Math.atan,
+    sin: sinD, cos: cosD, tan: tanD,
+    asin: asinD, acos: acosD, atan: atanD,
     sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh,
     log: Math.log10, ln: Math.log, exp: Math.exp,
     sqrt: Math.sqrt, cbrt: Math.cbrt, abs: Math.abs,
@@ -62,7 +103,7 @@ const state = {
   // Graph
   graphFunctions: ['sin(X)', '', '', ''],
   graphColors: ['#e74c3c', '#2980b9', '#27ae60', '#9b59b6'],
-  graphWindow: { xMin: -6.3, xMax: 6.3, yMin: -3.1, yMax: 3.1 },
+  graphWindow: { xMin: -360, xMax: 360, yMin: -5, yMax: 5 },
   graphShowEditor: true,
   graphActiveFn: 0,
   traceActive: false,
@@ -657,7 +698,7 @@ function handleFkey(n) {
         }
         drawGraph(); updateFkeys();
       } else if (n === 2) zoomToFit();
-      else if (n === 3) { state.graphWindow = { xMin: -6.3, xMax: 6.3, yMin: -3.1, yMax: 3.1 }; drawGraph(); }
+      else if (n === 3) { state.graphWindow = { xMin: -360, xMax: 360, yMin: -5, yMax: 5 }; drawGraph(); }
       else if (n === 5) graphSolveZeros();
       else if (n === 6) showGraphEditor();
     }
